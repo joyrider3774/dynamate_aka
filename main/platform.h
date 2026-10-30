@@ -15,7 +15,8 @@ uint32_t GetTicks();
 void Delay(uint32_t ms);
 // waits for the next frame at the game's 30 frames a second (SDL_framerateDelay)
 void FramerateDelay();
-// the keys held right now, GB_KEY_* bits; the joystick counts as the d-pad
+// the keys held right now, GB_KEY_* bits; the joystick counts as the d-pad. RUN + MENU held for
+// half a second goes back to the launcher, RUN on its own switches the AKA off
 uint16_t PollKeys();
 // a block that does not have to be in internal RAM
 void* AllocLarge(size_t size);

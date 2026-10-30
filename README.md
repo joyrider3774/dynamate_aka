@@ -21,8 +21,10 @@ the piece you move.
 | D + up / down | volume | volume | volume |
 
 Entering a level name: A types the chosen key, B deletes the last character, MENU accepts and
-C cancels. **Quit** in the main menu goes back to the launcher; RUN switches the AKA off as in
-every game.
+C cancels.
+
+**Quit** in the main menu, or **RUN + MENU** held for half a second anywhere in the game, goes back
+to the launcher; RUN on its own switches the AKA off as in every game.
 
 ## Installing
 

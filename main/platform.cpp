@@ -12,6 +12,9 @@
 #include "esp_system.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+// the keys without the library's poll, and its power off, see PollKeys
+#include "gb_ll_expander.h"
+#include "gb_ll_i2c.h"
 
 gb_core core;
 
@@ -45,11 +48,55 @@ void FramerateDelay()
         Delay(1);
 }
 
+// RUN and MENU held together for half a second go back to the launcher, as in the other AKA
+// games; RUN on its own switches the AKA off when it comes up, as the library does
+#define EXIT_HOLD_MS 500
+
 uint16_t PollKeys()
 {
-    // the library's poll also switches the AKA off when RUN is pressed, as it does in every game
+    // the keys the game saw last, what it keeps seeing while RUN is down
+    static uint16_t Keys = 0;
+    // RUN is down, and whether it has been on its own all the while (no MENU)
+    static bool RunDown = false, RunAlone = false;
+    // when RUN and MENU both went down, 0 while they are not
+    static uint32_t ExitHeldSince = 0;
+
+    // The library's poll (core.pool) switches the AKA off as soon as it sees RUN, so RUN held
+    // with MENU would never get here: while RUN is down the keys are read straight from the
+    // expander, the read the poll makes itself, and the joystick on its own
+    const uint16_t Raw = gb_ll_expander_read() & EXPANDER_KEY;
+    if (Raw & GB_KEY_RUN)
+    {
+        core.joystick.update();
+        if (!RunDown)
+        {
+            RunDown = true;
+            RunAlone = true;
+        }
+        if (Raw & GB_KEY_MENU)
+        {
+            RunAlone = false;
+            const uint32_t Now = GetTicks();
+            if (!ExitHeldSince)
+                ExitHeldSince = Now | 1;
+            else if (Now - ExitHeldSince >= EXIT_HOLD_MS)
+                ReturnToLoader();
+        }
+        else
+            ExitHeldSince = 0;
+        // the combination is not the game's: it keeps the keys it had when RUN went down
+        return Keys;
+    }
+    ExitHeldSince = 0;
+    if (RunDown)
+    {
+        RunDown = false;
+        if (RunAlone)
+            gb_ll_expander_power_off();
+    }
     core.pool();
-    return core.buttons.state() | core.joystick.state();
+    Keys = core.buttons.state() | core.joystick.state();
+    return Keys;
 }
 
 void* AllocLarge(size_t size)
